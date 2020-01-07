@@ -22,57 +22,69 @@ public class MC {
             System.out.println("用法 java -jar NUnicom 用户名 密码 [VPN连接名 VPN用户名 VPN密码]");
             return;
         }
-        try {
-            if (getNetStatus() == 200) {
-                System.out.println("网络正常");
-                return;
-            }
-            Result result = login(args[0], args[1]);
-            System.out.println(result.getSuccess());
-            System.out.println(result.getMessage());
-            if (result.getSuccess() && args.length == 5) {
-                executeCMD("rasdial \"" + args[2] + "\" " + args[3] + " " + args[4]);
-            }
-        } catch (URISyntaxException e) {
-            e.printStackTrace();
-        } catch (IOException e) {
-            e.printStackTrace();
-        } catch (InterruptedException e) {
-            e.printStackTrace();
+        if (getNetStatus() == 200) {
+            System.out.println("网络正常");
+            return;
+        }
+        Result result = login(args[0], args[1]);
+        if (result == null) {
+            System.out.println("重连失败");
+            return;
+        }
+        System.out.println("重连结果[" + result.getSuccess() + "]：" + result.getMessage());
+        if (result.getSuccess() && args.length == 5) {
+            executeCMD("rasdial \"" + args[2] + "\" " + args[3] + " " + args[4]);
         }
     }
 
-    private static int getNetStatus() throws URISyntaxException, IOException, InterruptedException {
+    private static int getNetStatus() {
         HttpClient client = HttpClient.newBuilder()
                 .version(HttpClient.Version.HTTP_2)
                 .connectTimeout(Duration.ofSeconds(30))
                 .followRedirects(HttpClient.Redirect.NEVER)
                 .build();
-        HttpRequest request = HttpRequest.newBuilder()
-                .header("User-Agent", UA)
-                .uri(new URI(URI_NET_STSTUS))
-                .GET().build();
-        HttpResponse<String> response = client.send(request, HttpResponse.BodyHandlers.ofString());
-        return response.statusCode();
+        int status = -1;
+        try {
+            HttpRequest request = HttpRequest.newBuilder()
+                    .header("User-Agent", UA)
+                    .uri(new URI(URI_NET_STSTUS))
+                    .GET().build();
+            HttpResponse<String> response = client.send(request, HttpResponse.BodyHandlers.ofString());
+            status = response.statusCode();
+        } catch (URISyntaxException e) {
+            System.err.println(e.getMessage());
+        } catch (IOException e) {
+            System.err.println(e.getMessage());
+        } catch (InterruptedException e) {
+            System.err.println(e.getMessage());
+        }
+        return status;
     }
 
-    private static Result login(String user, String pass) throws URISyntaxException, IOException, InterruptedException {
+    private static Result login(String user, String pass) {
         HttpClient client = HttpClient.newBuilder()
                 .version(HttpClient.Version.HTTP_2)
                 .build();
-
-        HttpRequest request = HttpRequest.newBuilder()
-                .header("Content-Type", "application/x-www-form-urlencoded; charset=UTF-8")
-                .header("Origin", "https://int.newland.com.cn")
-                .header("Referer", "https://int.newland.com.cn/")
-                .header("Sec-Fetch-Mode", "cors")
-                .header("User-Agent", UA)
-                .uri(new URI(URI_NET_AUTH))
-                .POST(HttpRequest.BodyPublishers.ofString("loginid="+user+"&password="+pass))
-                .build();
-
-        HttpResponse<String> response = client.send(request, HttpResponse.BodyHandlers.ofString());
-        return JSON.parseObject(response.body(), Result.class);
+        try {
+            HttpRequest request = HttpRequest.newBuilder()
+                    .header("Content-Type", "application/x-www-form-urlencoded; charset=UTF-8")
+                    .header("Origin", "https://int.newland.com.cn")
+                    .header("Referer", "https://int.newland.com.cn/")
+                    .header("Sec-Fetch-Mode", "cors")
+                    .header("User-Agent", UA)
+                    .uri(new URI(URI_NET_AUTH))
+                    .POST(HttpRequest.BodyPublishers.ofString("loginid=" + user + "&password=" + pass))
+                    .build();
+            HttpResponse<String> response = client.send(request, HttpResponse.BodyHandlers.ofString());
+            return JSON.parseObject(response.body(), Result.class);
+        } catch (IOException e) {
+            System.err.println(e.getMessage());
+        } catch (InterruptedException e) {
+            System.err.println(e.getMessage());
+        } catch (URISyntaxException e) {
+            System.err.println(e.getMessage());
+        }
+        return null;
     }
 
     public static void executeCMD(String cmdStr) {
@@ -87,7 +99,7 @@ public class MC {
             in.close();
             process.waitFor();
         } catch (Exception e) {
-            System.err.println(e);
+            System.err.println(e.getMessage());
         }
     }
 }
