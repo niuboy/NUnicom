@@ -1,0 +1,120 @@
+package com.xoes.nunicom;
+
+import com.alibaba.fastjson.JSON;
+
+import javax.ws.rs.client.Client;
+import javax.ws.rs.client.ClientBuilder;
+import javax.ws.rs.client.Entity;
+import javax.ws.rs.client.WebTarget;
+import javax.ws.rs.core.MultivaluedHashMap;
+import javax.ws.rs.core.MultivaluedMap;
+import javax.ws.rs.core.Response;
+import java.io.IOException;
+import java.io.InputStream;
+import java.net.URI;
+import java.net.URISyntaxException;
+import java.net.http.HttpClient;
+import java.net.http.HttpRequest;
+import java.net.http.HttpResponse;
+import java.time.Duration;
+
+public class MC {
+
+    private final static String UA = "Mozilla/5.0 (Windows NT 10.0; WOW64) AppleWebKit/537.36 (KHTML, like Gecko) Chrome/79.0.3945.88 Safari/537.36";
+    private final static String URI_NET_AUTH = "https://25y.newland.com.cn/pts/portalLogin/loginPw";
+    private final static String URI_NET_STSTUS = "https://www.baidu.com";
+
+    public static void main(String[] args) throws InterruptedException, IOException, URISyntaxException {
+        if (args == null || !(args.length == 2 || args.length == 5)) {
+            System.out.println("用法 java -Dsun.net.http.allowRestrictedHeaders=true -jar NUnicom 用户名 密码 [VPN连接名 VPN用户名 VPN密码]");
+            return;
+        }
+        if (getNetStatus() == 200) {
+            System.out.println("网络正常");
+            return;
+        }
+        Result result = login(args[0], args[1]);
+        System.out.println(result.getSuccess());
+        System.out.println(result.getMessage());
+        if (result.getSuccess() && args.length == 5) {
+            executeCMD("rasdial \"" + args[2] + "\" " + args[3] + " " + args[4]);
+        }
+    }
+
+    private static int getNetStatus() throws URISyntaxException, IOException, InterruptedException {
+        HttpClient client = HttpClient.newBuilder()
+                .version(HttpClient.Version.HTTP_2)
+                .connectTimeout(Duration.ofSeconds(30))
+                .followRedirects(HttpClient.Redirect.NEVER)
+                .build();
+        HttpRequest request = HttpRequest.newBuilder()
+                .header("User-Agent", UA)
+                .uri(new URI(URI_NET_STSTUS))
+                .GET().build();
+        HttpResponse<String> response = client.send(request, HttpResponse.BodyHandlers.ofString());
+        return response.statusCode();
+    }
+
+    private static int getNetStatus1() {
+        Client client = ClientBuilder.newClient();
+        WebTarget target = client.target("https://www.baidu.com");
+        Response response = target.request().get();
+        int status = response.getStatus();
+        response.close();
+        return status;
+    }
+
+    private static Result login(String user, String pass) throws URISyntaxException, IOException, InterruptedException {
+        HttpClient client = HttpClient.newBuilder()
+                .version(HttpClient.Version.HTTP_2)
+                .build();
+
+        HttpRequest request = HttpRequest.newBuilder()
+                .header("Content-Type", "application/x-www-form-urlencoded; charset=UTF-8")
+                .header("Origin", "https://int.newland.com.cn")
+                .header("Referer", "https://int.newland.com.cn/")
+                .header("Sec-Fetch-Mode", "cors")
+                .header("User-Agent", UA)
+                .uri(new URI(URI_NET_AUTH))
+                .POST(HttpRequest.BodyPublishers.ofString("loginid="+user+"&password="+pass))
+                .build();
+
+        HttpResponse<String> response = client.send(request, HttpResponse.BodyHandlers.ofString());
+        return JSON.parseObject(response.body(), Result.class);
+    }
+
+    private static Result login1(String user, String pass) {
+        Client client = ClientBuilder.newClient();
+        WebTarget target = client.target(URI_NET_AUTH);
+        MultivaluedMap<String, String> formMap = new MultivaluedHashMap<>();
+        formMap.add("loginid", user);
+        formMap.add("password", pass);
+        Response response = target.request()
+                .accept("application/json, text/javascript, */*; q=0.01")
+                .header("Content-Type", "application/x-www-form-urlencoded; charset=UTF-8")
+                .header("Origin", "https://int.newland.com.cn")
+                .header("Referer", "https://int.newland.com.cn/")
+                .header("Sec-Fetch-Mode", "cors")
+                .header("User-Agent", "Mozilla/5.0 (Windows NT 10.0; WOW64) AppleWebKit/537.36 (KHTML, like Gecko) Chrome/76.0.3809.87 Safari/537.36")
+                .post(Entity.form(formMap));
+        String value = response.readEntity(String.class);
+        response.close();
+        return JSON.parseObject(value, Result.class);
+    }
+
+    public static void executeCMD(String cmdStr) {
+        Runtime run = Runtime.getRuntime();
+        try {
+//			Process process = run.exec("cmd.exe /k start " + cmdStr);
+            Process process = run.exec("cmd.exe /c " + cmdStr);
+            InputStream in = process.getInputStream();
+            while (in.read() != -1) {
+                System.out.println(in.read());
+            }
+            in.close();
+            process.waitFor();
+        } catch (Exception e) {
+            System.err.println(e);
+        }
+    }
+}
