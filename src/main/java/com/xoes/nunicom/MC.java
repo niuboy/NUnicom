@@ -14,7 +14,7 @@ import java.time.Duration;
 public class MC {
 
     private final static String UA = "Mozilla/5.0 (Windows NT 10.0; WOW64) AppleWebKit/537.36 (KHTML, like Gecko) Chrome/79.0.3945.88 Safari/537.36";
-    private final static String URI_NET_AUTH = "https://25y.newland.com.cn/pts/portalLogin/loginPw";
+    private final static String URI_NET_AUTH = "https://int.newland.com.cn/pts/portalLogin/loginPw";
     private final static String URI_NET_STSTUS = "https://www.baidu.com";
 
     public static void main(String[] args) {
@@ -67,11 +67,16 @@ public class MC {
                 .build();
         try {
             HttpRequest request = HttpRequest.newBuilder()
+                    .header("Accept", "application/json, text/javascript, */*; q=0.01")
+                    .header("Accept-Encoding", "gzip, deflate, br")
+                    .header("Accept-Language", "zh-CN,zh;q=0.9")
                     .header("Content-Type", "application/x-www-form-urlencoded; charset=UTF-8")
                     .header("Origin", "https://int.newland.com.cn")
                     .header("Referer", "https://int.newland.com.cn/")
                     .header("Sec-Fetch-Mode", "cors")
+                    .header("Sec-Fetch-Site", "same-origin")
                     .header("User-Agent", UA)
+                    .header("X-Requested-With", "XMLHttpRequest")
                     .uri(new URI(URI_NET_AUTH))
                     .POST(HttpRequest.BodyPublishers.ofString("loginid=" + user + "&password=" + pass))
                     .build();
