@@ -1,3 +1,4 @@
+@echo off
 REM java -jar 文件名.jar 参数
 REM 参数说明 可多项 相加 例如 1+4=5 参数叠加 操作1参数在前
 REM  操作			参数
