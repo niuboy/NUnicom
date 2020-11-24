@@ -33,7 +33,7 @@ public class CheckUri {
         analysis();
     }
 
-    public String getUri() {x
+    public String getUri() {
         return uri;
     }
 
